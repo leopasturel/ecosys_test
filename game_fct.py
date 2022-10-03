@@ -23,7 +23,7 @@ class Game():
         pygame.display.set_caption("Ecosys-test")
 
         # Load map
-        self.tmx_data = pytmx.util_pygame.load_pygame("ecosys_map.tmx")
+        self.tmx_data = pytmx.util_pygame.load_pygame("assets/map/ecosys_map.tmx")
         map_data = pyscroll.data.TiledMapData(self.tmx_data)
         map_layer = pyscroll.orthographic.BufferedRenderer(map_data, self.screen.get_size())
         map_layer.zoom = 1

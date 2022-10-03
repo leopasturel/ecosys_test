@@ -12,7 +12,7 @@ path = os.path.dirname(os.path.abspath(actual_file_path))
 os.chdir(path)
 
 import pygame
-from game_2 import Game
+from game_fct import Game
 
 if __name__ == "__main__":
     pygame.init()
