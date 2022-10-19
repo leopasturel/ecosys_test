@@ -25,8 +25,19 @@ class Rabbit(pnj.Pnj):
         self.rect.x = 250
         self.rect.y = 200
         
+        # Define the size of the sensor that surrounds the character
+        self.sensor_length = self.rect.h*4
+        self.sensor_width = self.rect.w*4
+        
         # Give a speed to the character
-        self.velocity = 10
+        self.velocity = 10 # Should be between 6 and 15
+        
+        # Initiate vitals level (min=0,max=100)
+        self.thirst = 80
+        self.hunger = 90
+        
+        
+        self.food = "herbs"
         
     # Pbly remove that and play on velocity instead (keep a given value for everything)
     def elapsed_time_before_next_move(self):

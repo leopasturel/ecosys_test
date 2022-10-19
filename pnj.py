@@ -6,10 +6,11 @@ Created on Sat Sep 24 11:57:44 2022
 """
 
 import pygame
-import numpy as np
+import random
 import os
 
 import objects
+
 
 class Pnj(pygame.sprite.Sprite):
 
@@ -22,9 +23,7 @@ class Pnj(pygame.sprite.Sprite):
         tmx_data: (class: pytmx.pytmx.TiledMap)
             The attribute that contains the data from your tmx map.
             It will serve to simulate the move.
-            
         """
-        
         super().__init__()
         self.pnj_to_call = pnj_to_call
         
@@ -44,7 +43,7 @@ class Pnj(pygame.sprite.Sprite):
         self.previous_move = "down"
         
         # Define the list of objects that we want to avoid
-        self.collide_list = objects.collision_objects(tmx_data)
+        self.collide_list, self.object_dict = objects.collision_objects(tmx_data)
         
         
     # Get image
@@ -55,7 +54,6 @@ class Pnj(pygame.sprite.Sprite):
         number: (int)
             Number of the picture to display from 1 to 3.
         """
-
         self.image = self.all_images[f"{self.pnj_to_call}_{direction}_{number}.png"]
         
         return self.image
@@ -65,41 +63,57 @@ class Pnj(pygame.sprite.Sprite):
         """
         Display the image that the pnj has turned and chose direction for next move.
         """
+        
         # Define the feet position to use for collisions
         self.simulated_position = pygame.Rect(self.rect.x, # + self.rect.width/2, 
                                               self.rect.y,# + self.rect.height/3,
                                               self.rect.width/2,
-                                              self.rect.height/3).copy()
-
-        # Create list of possible diections
-        directions = ["right", "left", "down", "up", 
-                 "none", "none", self.previous_move, self.previous_move]
+                                              self.rect.height/2).copy()
         
-        # Start by drawing the direction it will go for
-        self.direction = np.random.choice(directions)
+        # Pnj checks its surroundings
+        proba, target_direction = self.check_vitals()
+        
+        # Create list of possible directions
+        directions = ["right", "left", "down", "up", 
+                 "none", self.previous_move, target_direction]
+
+        # Start by drawing the direction it will go for 
+        # (random.choices returns a list so we draw 2 items and keep only the first one to have a str)
+        self.direction = random.choices(directions, weights = proba, k=2)[0]
         
         # Save previous move to reinject it in the next draw.
         self.previous_move = self.direction
         
-        
         # Reset number of the first image to display during animation
         self.image_anim = 2
         
-        
+        if self.thirst <= 10:
+            pass
         # Return image
+        print(self.direction)
         if self.direction != "none":
             self.image = self.get_image(self.direction, 1)
             
+            # Try and see if the move is possible. Otherwise, pick another one.
             for n in range(2):
                 self.simulated_position = self.simulate_move_pnj(self.direction, self.simulated_position)
 
-                for obj in self.collide_list:
-                    # If the simulated position ends in an object recall turn()
-                    hit = pygame.Rect.collidelist(self.simulated_position, self.collide_list)
-                    if hit != -1:
-                        return self.turn()
-                    
-            
+                # Check if there is a collision between simulated position of pnj and an object
+                hit = pygame.Rect.collidelist(self.simulated_position, self.collide_list)
+                if hit != -1:
+
+                    # Change previous_move to have less probability to pick the same move
+                    direc_change = directions[:4]
+                    new_previous_move = self.previous_move
+                    while new_previous_move == self.previous_move:
+                        new_previous_move = random.choices(direc_change, k=2)[0]
+                    self.previous_move = new_previous_move
+                    return self.turn()
+                
+            # Update vitals
+            self.thirst = self.update_vitals(self.thirst, 0.5)
+    
+    
     def move_animation(self):
         """
         Define which image will be displayed depending on the direction and the 
@@ -128,6 +142,9 @@ class Pnj(pygame.sprite.Sprite):
             Direction to go for. 
             Should be one of the following: left, right, up, down, none.
         """
+        # Update vitals
+        self.thirst = self.update_vitals(self.thirst, 1)
+        
         # Move pnj on map
         if direction == "right":
             self.rect.x += self.velocity
@@ -153,7 +170,6 @@ class Pnj(pygame.sprite.Sprite):
         position: ()
             The position where the rect is
         """
-        
         # Move pnj on map
         if direction == "right":
             position.x += self.velocity
@@ -170,6 +186,120 @@ class Pnj(pygame.sprite.Sprite):
         return position
         
 
+    def check_vitals(self):
+        """
+        Check vitals of pnj.
+        """
+        
+        # Update sensor of pnj
+        self.sensor_pnj()
+        
+        # if self.thirst <= self.hunger:
+        proba, target_direction = self.define_proba_direction(self.thirst, "water") #, thirst_emergency)
+            
+        # else:
+        #     proba, target_direction = self.define_proba_direction(self.food, hunger_emergency)
+            
+        return proba, target_direction
+    
+    
+    def sensor_pnj(self):
+        """
+        Create a sensor centered around the pnj for it to know its surroundings.
+        """
+        self.sensor_full = []
+        
+        self.sensor_full.append(pygame.Rect(self.rect.x + self.sensor_width/2, 
+                                            self.rect.y + self.sensor_length/2,
+                                            self.sensor_width/2, self.sensor_length))
+        
+        self.sensor_full.append(pygame.Rect(self.rect.x + self.sensor_width/2, 
+                                       self.rect.y + self.sensor_length/2,
+                                       self.sensor_width, self.sensor_length/2))
+                           
+        self.sensor_full.append(pygame.Rect(self.rect.x + self.sensor_width/2, 
+                                       self.rect.y + self.sensor_length/2,
+                                       self.sensor_width/1.25, self.sensor_length/1.5))
+        
+        self.sensor_full.append(pygame.Rect(self.rect.x + self.sensor_width/2, 
+                                       self.rect.y + self.sensor_length/2,
+                                       self.sensor_width/1.5, self.sensor_length/1.25))
+
+                
+    def define_proba_direction(self, vital, target_type): #, emergency):
+        """
+        Define which behaviour to adopt depending on vitals.
+        Check the best route to get closer to the target.
+        If the target is close enough, don't move and eat/drink it'
+        target_type: (str)
+            Type of the target that you want to join (Eg: "water")
+        emergency: (str)
+            The level of emergency to get to the target.
+            Should be one of the following: "good", "okay", "bad", "critical"
+        """
+        # Initialize target_direction in case pnj's drinking or has no water in sight.
+        target_direction = "none"
+        
+        if vital <= 90 and pygame.Rect.collidelist(self.rect, self.object_dict[target_type]) != -1:
+            proba = [0, 0, 0, 0, 1, 0, 0]
+            self.thirst += 10
+            
+        else:
+            
+            # Check if there is a target around by checking collision with each sub-sensor
+            for sensor in self.sensor_full:
+                target_nb = pygame.Rect.collidelist(sensor, self.object_dict[target_type])
+
+                # Stop scanning as soon as a target is found
+                if target_nb != -1:
+                    break
+                    
+            if target_nb != -1:
+                # Compute distance from pnj to target.
+                distance_x = self.rect.x - self.object_dict[target_type][target_nb].x
+                distance_y = self.rect.y - self.object_dict[target_type][target_nb].y
+                
+                # Define direction to go for depending on the distance to the target.
+                if abs(distance_x) > abs(distance_y):
+                    if distance_x <= 0:
+                        target_direction = "right"
+                    else:
+                        target_direction = "left"
+                else:
+                    if distance_y <= 0:
+                        target_direction = "down"
+                    else:
+                        target_direction = "up"
+                
+                # Define probability of any direction to be drawn
+                p_vital = 100 - vital
+                
+                proba = [vital/6, vital/6, vital/6,
+                         vital/6, vital/6, vital/6, p_vital]
+                
+            else:
+                # If there is no water in sight, target_direction cannot be drawn.
+                if vital < 50:
+                    # If vital is low, there's no chance that pnj chills, it needs to find water
+                    proba = [1/4, 1/4, 1/4, 1/4, 0, 1/2, 0]
+                else:
+                    proba = [1/8, 1/8, 1/8, 1/8, 1/4, 1/4, 0]
+        return proba, target_direction
+        
+        
+    def update_vitals(self, vital, n):
+        vital -= n
+        print(vital)
+        if vital <= 0:
+            print("dead")
+            print(self.alive())
+            self.remove()
+            self.kill()
+        return vital
+        
+        
+
+        
 # =============================================================================
 # The part below is called only once to call all images
 # =============================================================================
@@ -186,7 +316,6 @@ def load_all_images(pnj, size_pnj, color_background):
         Color of the backgound of the image that we want to remove.
         Takes three arguments (for the RGB channels). Eg: [0,0,0] (for black)
     """
-    
     # Define path to images
     path = f"assets/{pnj}/"
     
@@ -213,44 +342,3 @@ def load_all_images(pnj, size_pnj, color_background):
         images[img] = image
         
     return images
-
-
-
-
-
-
-
-
-
-
-
-
-    # im_left = []
-    # im_right = []
-    # im_up = []
-    # im_down = []
-    
-    # for image in images:
-    #     if "left" in image:
-    #         im_left.append(path/image)
-    #     elif "right" in image:
-    #         im_right.append(path/image)
-    #     elif "down" in image:
-    #         im_down.append(path/image)
-    #     elif "up" in image:
-    #         im_up.append(path/image)
-            
-    # return im_left, im_right, im_down, im_up
-    
-# import time
-# n1 = time.time()
-    
-# dict_move = {
-#     "rabbit_left" : load_all_images("rabbit")[0],
-#     "rabbit_right" : load_all_images("rabbit")[1],
-#     "rabbit_down" : load_all_images("rabbit")[2],
-#     "rabbit_up" : load_all_images("rabbit")[3]
-#     }
-
-# n2 = time.time()
-# n2-n1

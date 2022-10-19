@@ -16,39 +16,24 @@ def collision_objects(tmx_data):
         The attribute that contains the data from your tmx map.
     """
     colliders = []
-    counter = 0
+    object_dict = {}
     for obj in tmx_data.objects:
+        
+        # Create a list containing all object rectangles.
         if obj.name != "dirt":
             colliders.append(pygame.Rect(obj.x, obj.y, 
                                          obj.width, obj.height))
-            counter += 1
-    #         print(obj)
-    # print(colliders)
+        
+        # Create a dictionnary containing all objects rectangles and what they are.
+        if obj.name not in object_dict.keys():
+            object_dict.setdefault(obj.name, [])
+        object_dict[obj.name].append(pygame.Rect(obj.x, obj.y, 
+                                     obj.width, obj.height))
     
-    return colliders
-    
+    return colliders, object_dict
 
-# =============================================================================
-# Still draft...
-# =============================================================================
-    
-# def check_collision(self, group):
-#     """
-#     Check collision and move back if there is one.
-#     group: (group of sprite)
-#         Group of sprites to check the collision for.
-#     """
-#     for sprite in group.sprites():
-#         if sprite.feet.collidelist(self.colliders):
-#            return sprite.move_back()
-    
-    
-# # Créer fenêtre du jeu
-# screen = pygame.display.set_mode((800, 600))
-# pygame.display.set_caption("Pygame - first game")
 
-# tmx_data = pytmx.util_pygame.load_pygame("ecosys_map.tmx")
-# for obj in tmx_data.objects:
-#     if obj.name == "water":
-#         obj.type = "collision"
-#     print(obj.type)
+
+def spawn_plants():
+    
+    pass

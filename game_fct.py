@@ -23,7 +23,7 @@ class Game():
         pygame.display.set_caption("Ecosys-test")
 
         # Load map
-        self.tmx_data = pytmx.util_pygame.load_pygame("assets/map/ecosys_map.tmx")
+        self.tmx_data = pytmx.util_pygame.load_pygame("assets/map/ecosys_map_old.tmx")
         map_data = pyscroll.data.TiledMapData(self.tmx_data)
         map_layer = pyscroll.orthographic.BufferedRenderer(map_data, self.screen.get_size())
         map_layer.zoom = 1
@@ -39,12 +39,13 @@ class Game():
         self.all_rabbits = pygame.sprite.Group()
         self.all_rabbits.add(self.rabbit)
         self.all_rabbits.add(self.rabbit2)
-        
+        # self.group.add(self.rabbit)
+        # self.group.add(self.rabbit2)
         
         
         # Define USEREVENTS such as move, spawn times, ...
-        self.move_pnj = pygame.USEREVENT+1
-        pygame.time.set_timer(self.move_pnj, 50) #self.rabbit.elapsed_time_before_next_move())
+        self.pnj_update = pygame.USEREVENT+1
+        pygame.time.set_timer(self.pnj_update, 50) #self.rabbit.elapsed_time_before_next_move())
         
         
     def update(self):
@@ -71,31 +72,36 @@ class Game():
             # add character to screen
             self.all_rabbits.draw(self.screen)
             
-            # x,y = pygame.mouse.get_pos()
-            # print(x,y)
-            
             # Refresh screen
             pygame.display.flip() 
             
-                
+            # x,y = pygame.mouse.get_pos()
+            # print(x,y)
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                     
-                elif event.type == self.move_pnj:
-                    # Move rabbit
+                    
+                elif event.type == self.pnj_update:
+                    
                     for rabbit in self.all_rabbits:
+                        ## Move rabbits
                         # Display image that the rabbit turns
                         if counter_move == 1:
+                            # Should add a def to separate sensor and turn
                             rabbit.turn()
+
                         # Display animation of movement
                         elif counter_move <= 4:
                             rabbit.move_animation()
                         # Reset counter if move is completed
                         else:
                             counter_move = 0
-                        
+                            
+                    # Increment counter in order to display either a turn or an animation
                     counter_move += 1
+                    
 
                 
         pygame.quit()
